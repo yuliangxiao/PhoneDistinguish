@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5, maximum-scale=2.0, user-scalable=yes" />
+    <meta charset="utf-8">
+    <title>上传箱号图片</title>
+    <link href="~/Content/layui/layui/css/layui.css" rel="stylesheet" />
+    <script src="~/Scripts/jquery-3.3.1.min.js"></script>
+    <link href="~/Content/loading.css" rel="stylesheet" />
+    <style>
+        .btn {
+            display: inline-block;
+            height: 38px;
+            line-height: 38px;
+            padding: 0 18px;
+            background-color: #009688;
+            color: #fff;
+            white-space: nowrap;
+            text-align: center;
+            font-size: 14px;
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" style="position:fixed;width:100%;height:100%;z-index:999;background:#c2c2c2;text-align:center;background-color: #bd4932;opacity: 0.8;">
+        <div class="loading"></div>
+    </div>
+
+    <div style="width:100%;height:40px;">
+        <button class="btn" onclick="input_click()">选择图片</button>
+        <input type="file" id="picAjax" class="customButton" style="display:none" />
+        <button class="btn" id="submitPic">上传图片</button>
+    </div>
+    <div class="rightImage">
+        <img id="selImg" src="" alt="" style="width:100%;" />
+    </div>
+    <span id="resulttxt"></span>
+</body>
+</html>
+<script>
+    $("#loading").hide();
+    var picString = "";
+    var ref = "";
+    var i = 0;
+    $("#picAjax").change(function (e) {
+        var file = e.delegateTarget.files[0];
+        if (file.type === 'image/jpeg' || file.type === 'image/png') {
+            clearInterval(ref);
+            $("#resulttxt").text("图片格式正确，请点击上传按钮");
+            var reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function (ret) {
+                picString = reader.result;
+                //预览图片
+                $("#selImg").attr({ "src": picString });
+            }
+        }
+        else {
+            $("#resulttxt").text("请上传jpg或png格式的图片！");
+        }
+    });
+    $("#submitPic").click(function () {
+        if (picString != "") {
+            $("#loading").show();
+            setInterval(function () {
+                $.ajax("/Home/SavePicture", {
+                    type: "post",
+                    datatype: "json",
+                    data: {
+                        picString: picString
+                    },
+                    error: function () { },
+                    success: function (result) {
+                        if (result.suc === true) {
+                            $("#loading").hide();
+                            $("#resulttxt").text("图片上传成功！");
+                            starttimer();
+                        }
+                    }
+                });
+            }, 500);
+        }
+    });
+    function input_click() {
+        $("#picAjax").click();
+    }
+
+    function get() {
+        i++;
+        if (i < 20) {
+            $("#resulttxt").text("等待时间:" + i);
+            $.ajax("/Home/GetResult", {
+                type: "get",
+                error: function () { },
+                success: function (result) {
+                    if (result != "") {
+                        clearInterval(ref);
+                        $("#resulttxt").text(result);
+                    }
+                }
+            });
+        }
+        else {
+            clearInterval(ref);
+            $("#resulttxt").text("无法识别");
+        }
+    }
+    function starttimer() {
+        ref = setInterval(function () {
+            get();
+        }, 1000);
+    }
+</script>
